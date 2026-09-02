@@ -1,0 +1,36 @@
+name: Website Change Checker
+
+on:
+  schedule:
+    # 毎日 午前9:00 (JST) に実行 (UTC 0:00)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # 手動実行ボタン用
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4
+
+      - name: Run checker script
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          python check.py
+
+      - name: Commit and push updated text state
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add *.txt
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update last site content" && git push)
